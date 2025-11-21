@@ -4,27 +4,31 @@ import {
   collection,
   getDocs,
   query,
-  where
+  where,
 } from "firebase/firestore";
 
-import ClubModel from "../../model/student/ClubModel";
+import CourseModel from "../../model/student/CourseModel";
 
 export default class VisitorRepository {
-  // Clubs publics
-  static async getPublicClubs() {
-    const snapshot = await getDocs(collection(db, "clubs"));
-    return snapshot.docs.map(doc => ClubModel.fromJson(doc.id, doc.data()));
+  // Cours publics
+  static async getPublicCourses() {
+    const snapshot = await getDocs(collection(db, "courses"));
+    return snapshot.docs.map((docu) =>
+      CourseModel.fromJson(docu.id, docu.data())
+    );
   }
 
-  // Recherche de clubs par nom
-  static async searchClubs(keyword) {
+  // Recherche de cours par titre
+  static async searchCourses(keyword) {
     const q = query(
-      collection(db, "clubs"),
-      where("name", ">=", keyword),
-      where("name", "<=", keyword + "\uf8ff")
+      collection(db, "courses"),
+      where("title", ">=", keyword),
+      where("title", "<=", keyword + "\uf8ff")
     );
 
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ClubModel.fromJson(doc.id, doc.data()));
+    return snapshot.docs.map((docu) =>
+      CourseModel.fromJson(docu.id, docu.data())
+    );
   }
 }

@@ -3,42 +3,36 @@ import { useState } from "react";
 
 /**
  * ViewModel pour le module Étudiant (Islem)
- * Ici il pourra :
- *  - charger la liste des clubs
- *  - charger les événements
- *  - envoyer une candidature à un club
- *  - uploader un CV
- *  - modifier le profil étudiant
+ * Maintenant basé sur des COURS (courses) et non des clubs.
  */
 export function useStudentViewModel() {
-  const [clubs, setClubs] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [events, setEvents] = useState([]);
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Exemple de méthode TODO pour Islem :
-  const fetchClubs = async () => {
+  const fetchCourses = async () => {
     setLoading(true);
     setError(null);
     try {
-      // TODO: appeler StudentRepository.getClubs()
-      console.log("TODO: implémenter fetchClubs dans StudentViewModel");
+      // TODO: StudentRepository.getCourses()
+      console.log("TODO: implémenter fetchCourses dans StudentViewModel");
     } catch (e) {
-      setError(e.message || "Erreur lors du chargement des clubs");
+      setError(e.message || "Erreur lors du chargement des cours");
     } finally {
       setLoading(false);
     }
   };
 
-  const applyToClub = async (applicationData) => {
+  const applyToCourse = async (applicationData) => {
     setLoading(true);
     setError(null);
     try {
-      // TODO: StudentRepository.applyToClub(applicationData)
-      console.log("TODO: implémenter applyToClub dans StudentViewModel");
+      // TODO: StudentRepository.applyToCourse(applicationData)
+      console.log("TODO: implémenter applyToCourse dans StudentViewModel");
     } catch (e) {
-      setError(e.message || "Erreur lors de la candidature");
+      setError(e.message || "Erreur lors de la candidature au cours");
     } finally {
       setLoading(false);
     }
@@ -57,13 +51,13 @@ export function useStudentViewModel() {
   };
 
   return {
-    clubs,
+    courses,
     events,
     applications,
     loading,
     error,
-    fetchClubs,
+    fetchCourses,
     fetchEvents,
-    applyToClub,
+    applyToCourse,
   };
 }

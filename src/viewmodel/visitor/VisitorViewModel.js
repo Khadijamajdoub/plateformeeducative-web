@@ -3,42 +3,35 @@ import { useState } from "react";
 
 /**
  * ViewModel pour le module Visiteur (Ons)
- * Elle pourra ici :
- *  - charger les clubs publics
- *  - rechercher des clubs
- *  - lire les événements publics
+ * Basé sur les COURS publics.
  */
 export function useVisitorViewModel() {
-  const [clubs, setClubs] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [events, setEvents] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Charger tous les clubs publics
-  const fetchPublicClubs = async () => {
+  const fetchPublicCourses = async () => {
     setLoading(true);
     setError(null);
     try {
-      // TODO: VisitorRepository.getPublicClubs()
-      console.log("TODO: implémenter fetchPublicClubs dans VisitorViewModel");
+      console.log("TODO: implémenter fetchPublicCourses dans VisitorViewModel");
     } catch (e) {
-      setError(e.message || "Erreur lors du chargement des clubs publics");
+      setError(e.message || "Erreur lors du chargement des cours");
     } finally {
       setLoading(false);
     }
   };
 
-  // Rechercher des clubs (par nom, catégorie...)
-  const searchClubs = async (query) => {
+  const searchCourses = async (query) => {
     setLoading(true);
     setError(null);
     try {
-      // TODO: VisitorRepository.searchClubs(query)
-      console.log("TODO: implémenter searchClubs dans VisitorViewModel", query);
+      console.log("TODO: implémenter searchCourses dans VisitorViewModel", query);
       // setSearchResults(result);
     } catch (e) {
-      setError(e.message || "Erreur lors de la recherche de clubs");
+      setError(e.message || "Erreur lors de la recherche de cours");
     } finally {
       setLoading(false);
     }
@@ -48,7 +41,6 @@ export function useVisitorViewModel() {
     setLoading(true);
     setError(null);
     try {
-      // TODO: VisitorRepository.getPublicEvents()
       console.log("TODO: implémenter fetchEvents dans VisitorViewModel");
     } catch (e) {
       setError(e.message || "Erreur lors du chargement des événements");
@@ -58,13 +50,13 @@ export function useVisitorViewModel() {
   };
 
   return {
-    clubs,
+    courses,
     events,
     searchResults,
     loading,
     error,
-    fetchPublicClubs,
-    searchClubs,
+    fetchPublicCourses,
+    searchCourses,
     fetchEvents,
   };
 }

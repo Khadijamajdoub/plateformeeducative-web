@@ -5,23 +5,28 @@ import {
   addDoc,
   getDocs,
   doc,
-  updateDoc
+  updateDoc,
 } from "firebase/firestore";
 
-import ClubModel from "../../model/student/ClubModel";
+import CourseModel from "../../model/student/CourseModel";
 import ApplicationModel from "../../model/student/ApplicationModel";
 import StudentModel from "../../model/student/StudentModel";
 
 export default class StudentRepository {
-  // Clubs publics
-  static async getClubs() {
-    const snapshot = await getDocs(collection(db, "clubs"));
-    return snapshot.docs.map(doc => ClubModel.fromJson(doc.id, doc.data()));
+  // Liste des cours
+  static async getCourses() {
+    const snapshot = await getDocs(collection(db, "courses"));
+    return snapshot.docs.map((docu) =>
+      CourseModel.fromJson(docu.id, docu.data())
+    );
   }
 
-  // Candidature
-  static async applyToClub(applicationModel) {
-    return await addDoc(collection(db, "applications"), applicationModel.toJson());
+  // "Candidature" à un cours → tu peux l’adapter en inscription/achat plus tard
+  static async applyToCourse(applicationModel) {
+    return await addDoc(
+      collection(db, "applications"),
+      applicationModel.toJson()
+    );
   }
 
   // Mise à jour profil étudiant

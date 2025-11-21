@@ -1,19 +1,26 @@
-export default class VisitorModel {
-  constructor({ id, name }) {
+// src/model/student/CourseModel.js
+export default class CourseModel {
+  constructor({ id, title, description, price }) {
     this.id = id;
-    this.name = name;
+    this.title = title;
+    this.description = description;
+    this.price = price ?? 0;
   }
 
   static fromJson(id, data) {
-    return new VisitorModel({
+    return new CourseModel({
       id,
-      name: data.name,
+      title: data.title,
+      description: data.description,
+      price: data.price,
     });
   }
 
   toJson() {
     return {
-      name: this.name,
+      title: this.title,
+      description: this.description,
+      price: this.price,
     };
   }
 }
