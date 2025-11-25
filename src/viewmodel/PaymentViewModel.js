@@ -1,62 +1,72 @@
 // src/viewmodel/PaymentViewModel.js
 import { useState } from "react";
+import PaymeeService from "../services/payment/PaymeeService";
 import PaymentRepository from "../services/PaymentRepository";
-import PaymentModel from "../model/PaymentModel";
+import CourseUnlockRepository from "../services/CourseUnlockRepository"; 
 
+/**
+ * ViewModel pour gérer la logique de paiement + déblocage de cours
+ */
 export function usePaymentViewModel() {
-  const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [lastPayment, setLastPayment] = useState(null);
 
-  // Charger tous les paiements
-  const fetchPayments = async () => {
+  /**
+   * Crée un paiement + débloque un cours
+   */
+  const createPayment = async (paymentData) => {
+    const { amount, userId, courseId, note = "Achat cours", phone = "" } = paymentData;
+
+    setLoading(true);
+    setError(null);
+
     try {
-      setLoading(true);
-      setError(null);
-      const data = await PaymentRepository.getPayments();
-      setPayments(data);
-    } catch (e) {
-      console.error(e);
-      setError(e.message || "Erreur lors du chargement des paiements");
-    } finally {
-      setLoading(false);
-    }
-  };
+      // 1️⃣ Appel Paymee (simulé)
+      const response = await PaymeeService.createPayment(amount, note, phone);
 
-  // Créer un nouveau paiement
-  const createPayment = async ({ userId, amount, method }) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const payment = new PaymentModel({
-        userId,
+      // 2️⃣ Enregistrement dans Firestore
+      const paymentId = await PaymentRepository.addPayment({
         amount,
-        method,
+        note,
+        phone,
+        transactionId: response.transaction_id,
+        paymentUrl: response.payment_url,
         status: "pending",
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
+        userId,
+        courseId
       });
 
-      const id = await PaymentRepository.addPayment(payment);
+      // 3️⃣ Débloquer le cours pour cet utilisateur
+      await CourseUnlockRepository.unlockCourse(userId, courseId);
 
-      // Option : mettre à jour la liste
-      await fetchPayments();
+      // 4️⃣ Mettre à jour l’UI
+      setLastPayment({
+        id: paymentId,
+        amount,
+        transactionId: response.transaction_id,
+        paymentUrl: response.payment_url
+      });
 
-      return id;
-    } catch (e) {
-      console.error(e);
-      setError(e.message || "Erreur lors de la création du paiement");
-      throw e;
+      // 5️⃣ Retourner le résultat
+      return {
+        id: paymentId,
+        paymentUrl: response.payment_url
+      };
+    } catch (err) {
+      console.error("Erreur createPayment:", err);
+      setError("Erreur lors de la création du paiement.");
+      return null;
     } finally {
       setLoading(false);
     }
   };
 
   return {
-    payments,
     loading,
     error,
-    fetchPayments,
+    lastPayment,
     createPayment,
   };
 }

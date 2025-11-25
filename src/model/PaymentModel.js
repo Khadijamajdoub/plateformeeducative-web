@@ -1,45 +1,29 @@
-// src/model/PaymentModel.js
 export default class PaymentModel {
-  constructor({
-    id = "",
-    userId = "",
-    amount = 0,
-    status = "pending", // "pending", "success", "failed"
-    method = "",
-    createdAt = null,
-    paymeeTransactionId = "",
-  } = {}) {
-    this.id = id;
+  constructor({ userId, amount, method, phone, note, courseId }) {
     this.userId = userId;
     this.amount = amount;
-    this.status = status;
     this.method = method;
-    this.createdAt = createdAt;
-    this.paymeeTransactionId = paymeeTransactionId;
+    this.phone = phone || "";
+    this.note = note || "";
+    this.courseId = courseId;
+    this.createdAt = new Date().toISOString();
+    this.status = "pending"; // par défaut
+    this.transactionId = "";
+    this.paymentUrl = "";
   }
 
-  // Convertit un document Firestore en PaymentModel
-  static fromJson(id, data) {
-    return new PaymentModel({
-      id,
-      userId: data.userId,
-      amount: data.amount,
-      status: data.status,
-      method: data.method,
-      createdAt: data.createdAt,
-      paymeeTransactionId: data.paymeeTransactionId,
-    });
-  }
-
-  // Prépare les données pour Firestore
   toJson() {
     return {
       userId: this.userId,
       amount: this.amount,
-      status: this.status,
       method: this.method,
+      phone: this.phone,
+      note: this.note,
+      courseId: this.courseId,
       createdAt: this.createdAt,
-      paymeeTransactionId: this.paymeeTransactionId,
+      status: this.status,
+      transactionId: this.transactionId,
+      paymentUrl: this.paymentUrl,
     };
   }
 }

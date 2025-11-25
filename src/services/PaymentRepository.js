@@ -1,43 +1,47 @@
 // src/services/PaymentRepository.js
+import { db } from "./FirebaseService";
 import {
   collection,
   addDoc,
   getDocs,
   doc,
   updateDoc,
-  deleteDoc,
 } from "firebase/firestore";
 
-import { db } from "./FirebaseService";
-import PaymentModel from "../model/PaymentModel";
-
-const paymentsCollection = collection(db, "payments");
-
+/**
+ * Repository pour les paiements (collection "payments" dans Firestore)
+ */
 export default class PaymentRepository {
-  // Récupérer tous les paiements
-  static async getPayments() {
-    const snapshot = await getDocs(paymentsCollection);
-    return snapshot.docs.map((d) => PaymentModel.fromJson(d.id, d.data()));
+  static collectionRef() {
+    return collection(db, "payments");
   }
 
-  // Ajouter un paiement
-  static async addPayment(paymentModel) {
-    const docRef = await addDoc(paymentsCollection, paymentModel.toJson());
+  /**
+   * Ajoute un nouveau paiement dans Firestore
+   * @param {object} paymentData
+   * @returns {string} id du document créé
+   */
+  static async addPayment(paymentData) {
+    const docRef = await addDoc(this.collectionRef(), paymentData);
     return docRef.id;
   }
 
-  // Mettre à jour un paiement existant
-  static async updatePayment(paymentModel) {
-    if (!paymentModel.id) {
-      throw new Error("PaymentModel.id est obligatoire pour update");
-    }
-    const ref = doc(db, "payments", paymentModel.id);
-    await updateDoc(ref, paymentModel.toJson());
+  /**
+   * Récupère tous les paiements
+   */
+  static async getAllPayments() {
+    const snapshot = await getDocs(this.collectionRef());
+    return snapshot.docs.map((d) => ({
+      id: d.id,
+      ...d.data(),
+    }));
   }
 
-  // Supprimer un paiement
-  static async deletePayment(id) {
-    const ref = doc(db, "payments", id);
-    await deleteDoc(ref);
+  /**
+   * Met à jour le statut d'un paiement (ex: pending -> success)
+   */
+  static async updatePaymentStatus(paymentId, newStatus) {
+    const ref = doc(db, "payments", paymentId);
+    await updateDoc(ref, { status: newStatus });
   }
 }

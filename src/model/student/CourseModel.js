@@ -1,4 +1,4 @@
-export default class ClubModel {
+export default class CourseModel {
   constructor({ id, name, description }) {
     this.id = id;
     this.name = name;
@@ -6,7 +6,7 @@ export default class ClubModel {
   }
 
   static fromJson(id, data) {
-    return new ClubModel({
+    return new CourseModel({
       id,
       name: data.name,
       description: data.description,
