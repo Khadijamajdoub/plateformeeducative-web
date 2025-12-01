@@ -1,72 +1,92 @@
 // src/viewmodel/PaymentViewModel.js
-import { useState } from "react";
-import PaymeeService from "../services/payment/PaymeeService";
-import PaymentRepository from "../services/PaymentRepository";
-import CourseUnlockRepository from "../services/CourseUnlockRepository"; 
+import { useState, useRef } from "react";
+import axios from "axios";
+import { auth } from "../services/FirebaseService";
 
-/**
- * ViewModel pour gérer la logique de paiement + déblocage de cours
- */
 export function usePaymentViewModel() {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [lastPayment, setLastPayment] = useState(null);
+  const [error, setError] = useState("");
 
-  /**
-   * Crée un paiement + débloque un cours
-   */
-  const createPayment = async (paymentData) => {
-    const { amount, userId, courseId, note = "Achat cours", phone = "" } = paymentData;
+  // ✅ évite double checkout (double click / rerender react)
+  const inFlightRef = useRef(false);
+
+  async function startCheckout({
+    courseId,
+    amount,
+    phone,
+    returnBaseUrl,
+    backendPublicUrl,
+  }) {
+    if (inFlightRef.current) return false; // stop double call
+    inFlightRef.current = true;
 
     setLoading(true);
-    setError(null);
+    setError("");
 
     try {
-      // 1️⃣ Appel Paymee (simulé)
-      const response = await PaymeeService.createPayment(amount, note, phone);
+      const user =
+        auth.currentUser || {
+          uid: "demo-user",
+          email: "demo@paymee.tn",
+          displayName: "Demo User",
+        };
 
-      // 2️⃣ Enregistrement dans Firestore
-      const paymentId = await PaymentRepository.addPayment({
-        amount,
-        note,
-        phone,
-        transactionId: response.transaction_id,
-        paymentUrl: response.payment_url,
-        status: "pending",
-        createdAt: new Date().toISOString(),
-        userId,
-        courseId
-      });
+      if (!courseId) throw new Error("Cours non choisi.");
+      const amt = Number(amount);
+      if (!amt || amt <= 0) throw new Error("Montant invalide.");
 
-      // 3️⃣ Débloquer le cours pour cet utilisateur
-      await CourseUnlockRepository.unlockCourse(userId, courseId);
+      // ✅ On accepte une seule URL :
+      // 1) backendPublicUrl si fourni
+      // 2) sinon returnBaseUrl
+      // 3) sinon env vite
+      // 4) sinon origin du navigateur
+      const cleanBase = (url) =>
+        String(url || "").trim().replace(/\/+$/, "");
 
-      // 4️⃣ Mettre à jour l’UI
-      setLastPayment({
-        id: paymentId,
-        amount,
-        transactionId: response.transaction_id,
-        paymentUrl: response.payment_url
-      });
+      const cleanBackendUrl =
+        cleanBase(backendPublicUrl) ||
+        cleanBase(returnBaseUrl) ||
+        cleanBase(import.meta.env.VITE_BACKEND_URL) ||
+        cleanBase(window.location.origin);
 
-      // 5️⃣ Retourner le résultat
-      return {
-        id: paymentId,
-        paymentUrl: response.payment_url
-      };
-    } catch (err) {
-      console.error("Erreur createPayment:", err);
-      setError("Erreur lors de la création du paiement.");
-      return null;
+      if (!cleanBackendUrl) throw new Error("URL backend introuvable.");
+
+      const displayParts = (user.displayName || "Demo User").split(" ");
+      const firstName = displayParts[0] || "User";
+      const lastName = displayParts.slice(1).join(" ") || "Demo";
+
+      const res = await axios.post(
+        `${cleanBackendUrl}/api/payments/create`,
+        {
+          courseId,
+          amount: amt,
+          phone: phone?.trim() || "11111111",
+          userId: user.uid,
+          email: user.email,
+          firstName,
+          lastName,
+
+          // ✅ le backend construit return_url/cancel_url via baseUrl
+          // si tu as une seule URL => elle suffit ici
+          baseUrl: cleanBase(returnBaseUrl) || cleanBackendUrl,
+        }
+      );
+
+      const { payment_url } = res.data || {};
+      if (!payment_url) throw new Error("payment_url manquante");
+
+      // ✅ redirection Paymee
+      window.location.assign(payment_url);
+      return true;
+    } catch (e) {
+      console.error(e);
+      setError(e.response?.data?.message || e.message);
+      return false;
     } finally {
       setLoading(false);
+      inFlightRef.current = false;
     }
-  };
+  }
 
-  return {
-    loading,
-    error,
-    lastPayment,
-    createPayment,
-  };
+  return { startCheckout, loading, error };
 }

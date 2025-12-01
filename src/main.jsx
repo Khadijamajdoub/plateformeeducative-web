@@ -7,7 +7,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import App from "./App.jsx";
 import PaymentStatusPage from "./view/payment/PaymentStatusPage.jsx"; 
 import CheckoutPage from "./view/payment/CheckoutPage.jsx";
-import FakePaymeePage from "./view/payment/FakePaymeePage.jsx"; 
 import MyCourses from "./view/payment/MyCourses.jsx"; // 🔵 AJOUT ICI
 import CourseViewer from "./view/payment/CourseViewer.jsx";
 
@@ -23,7 +22,6 @@ ReactDOM.createRoot(document.getElementById("root")).render(
 
   {/* Paiement */}
   <Route path="/checkout" element={<CheckoutPage />} />
-  <Route path="/fake-paymee" element={<FakePaymeePage />} />
   <Route path="/payment-status" element={<PaymentStatusPage />} />
 
 <Route path="/my-courses" element={<MyCourses />} />

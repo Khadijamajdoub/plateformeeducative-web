@@ -4,44 +4,44 @@ import {
   collection,
   addDoc,
   getDocs,
+  getDoc,
   doc,
   updateDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 
-/**
- * Repository pour les paiements (collection "payments" dans Firestore)
- */
 export default class PaymentRepository {
-  static collectionRef() {
-    return collection(db, "payments");
+  constructor() {
+    this.ref = collection(db, "payments");
   }
 
-  /**
-   * Ajoute un nouveau paiement dans Firestore
-   * @param {object} paymentData
-   * @returns {string} id du document créé
-   */
-  static async addPayment(paymentData) {
-    const docRef = await addDoc(this.collectionRef(), paymentData);
+  async create(paymentData) {
+    const docRef = await addDoc(this.ref, {
+      ...paymentData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
     return docRef.id;
   }
 
-  /**
-   * Récupère tous les paiements
-   */
-  static async getAllPayments() {
-    const snapshot = await getDocs(this.collectionRef());
-    return snapshot.docs.map((d) => ({
-      id: d.id,
-      ...d.data(),
-    }));
+  async getById(paymentId) {
+    const refDoc = doc(db, "payments", paymentId);
+    const snap = await getDoc(refDoc);
+    if (!snap.exists()) return null;
+    return { id: snap.id, ...snap.data() };
   }
 
-  /**
-   * Met à jour le statut d'un paiement (ex: pending -> success)
-   */
-  static async updatePaymentStatus(paymentId, newStatus) {
-    const ref = doc(db, "payments", paymentId);
-    await updateDoc(ref, { status: newStatus });
+  async updateStatus(paymentId, status, extra = {}) {
+    const refDoc = doc(db, "payments", paymentId);
+    await updateDoc(refDoc, {
+      status,
+      ...extra,
+      updatedAt: serverTimestamp(),
+    });
+  }
+
+  async getAll() {
+    const snapshot = await getDocs(this.ref);
+    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
   }
 }
