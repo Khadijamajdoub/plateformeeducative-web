@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Authentification Étudiant</title>
+  <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+
+  <div class="auth-container">
+
+    <!-- Boutons -->
+    <div class="tab-buttons">
+      <button onclick="showLogin()" id="loginBtn" class="active">Connexion</button>
+      <button onclick="showSignup()" id="signupBtn">Inscription</button>
+    </div>
+
+    <!-- LOGIN -->
+    <form id="loginForm" class="form active">
+      <h2>Connexion</h2>
+      <input type="email" placeholder="Email" required>
+      <input type="password" placeholder="Mot de passe" required>
+      <button type="submit">Se connecter</button>
+    </form>
+
+    <!-- SIGNUP -->
+    <form id="signupForm" class="form">
+      <h2>Inscription</h2>
+      <input type="email" placeholder="Email" required>
+      <input type="password" placeholder="Mot de passe" required>
+      <input type="password" placeholder="Confirmer le mot de passe" required>
+      <button type="submit">Créer un compte</button>
+    </form>
+
+  </div>
+
+  <script>
+    function showLogin() {
+      document.getElementById("loginForm").classList.add("active");
+      document.getElementById("signupForm").classList.remove("active");
+      document.getElementById("loginBtn").classList.add("active");
+      document.getElementById("signupBtn").classList.remove("active");
+    }
+
+    function showSignup() {
+      document.getElementById("signupForm").classList.add("active");
+      document.getElementById("loginForm").classList.remove("active");
+      document.getElementById("signupBtn").classList.add("active");
+      document.getElementById("loginBtn").classList.remove("active");
+    }
+  </script>
+
+</body>
+</html>

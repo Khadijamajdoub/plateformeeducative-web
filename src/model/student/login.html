@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Connexion Étudiant</title>
+  <link rel="stylesheet" href="login.css">
+</head>
+<body>
+
+  <div class="login-container">
+
+    <h2>Connexion Étudiant</h2>
+    <p>Accédez à votre espace personnel</p>
+
+    <form>
+      <input type="email" placeholder="Adresse email" required>
+      <input type="password" placeholder="Mot de passe" required>
+
+      <button type="submit">Se connecter</button>
+
+      <div class="links">
+        <a href="#">Mot de passe oublié ?</a>
+        <a href="signup.html">Créer un compte</a>
+      </div>
+    </form>
+
+  </div>
+  <script>
+    const form = document.getElementById("loginForm");
+
+    form.addEventListener("submit", function(e) {
+      e.preventDefault();
+
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      // ✅ Simulation de connexion (temporaire)
+      if (email !== "" && password !== "") {
+        localStorage.setItem("isLoggedIn", "true");
+        localStorage.setItem("userEmail", email);
+
+        // ✅ Redirection vers le dashboard
+        window.location.href = "dashboard.html";
+      } else {
+        alert("Veuillez remplir tous les champs");
+      }
+    });
+  </script>
+
+</body>
+</html>
