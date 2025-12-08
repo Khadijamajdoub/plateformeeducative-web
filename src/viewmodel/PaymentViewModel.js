@@ -7,7 +7,6 @@ export function usePaymentViewModel() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // ✅ évite double checkout (double click / rerender react)
   const inFlightRef = useRef(false);
 
   async function startCheckout({
@@ -16,8 +15,12 @@ export function usePaymentViewModel() {
     phone,
     returnBaseUrl,
     backendPublicUrl,
+
+    // ✅ AJOUTÉS
+    email,
+    fullName,
   }) {
-    if (inFlightRef.current) return false; // stop double call
+    if (inFlightRef.current) return false;
     inFlightRef.current = true;
 
     setLoading(true);
@@ -27,19 +30,14 @@ export function usePaymentViewModel() {
       const user =
         auth.currentUser || {
           uid: "demo-user",
-          email: "demo@paymee.tn",
-          displayName: "Demo User",
+          email: email || "demo@paymee.tn",      // ✅ prend email tapé
+          displayName: fullName || "Demo User", // ✅ prend nom tapé
         };
 
       if (!courseId) throw new Error("Cours non choisi.");
       const amt = Number(amount);
       if (!amt || amt <= 0) throw new Error("Montant invalide.");
 
-      // ✅ On accepte une seule URL :
-      // 1) backendPublicUrl si fourni
-      // 2) sinon returnBaseUrl
-      // 3) sinon env vite
-      // 4) sinon origin du navigateur
       const cleanBase = (url) =>
         String(url || "").trim().replace(/\/+$/, "");
 
@@ -65,9 +63,6 @@ export function usePaymentViewModel() {
           email: user.email,
           firstName,
           lastName,
-
-          // ✅ le backend construit return_url/cancel_url via baseUrl
-          // si tu as une seule URL => elle suffit ici
           baseUrl: cleanBase(returnBaseUrl) || cleanBackendUrl,
         }
       );
@@ -75,7 +70,6 @@ export function usePaymentViewModel() {
       const { payment_url } = res.data || {};
       if (!payment_url) throw new Error("payment_url manquante");
 
-      // ✅ redirection Paymee
       window.location.assign(payment_url);
       return true;
     } catch (e) {

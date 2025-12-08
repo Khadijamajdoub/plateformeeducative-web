@@ -5,6 +5,7 @@ import admin from "firebase-admin";
 import dotenv from "dotenv";
 import crypto from "crypto";
 import { createProxyMiddleware } from "http-proxy-middleware";
+import { sendPaymentSuccessEmail } from "./emailService.js"; // ✅ OK
 
 dotenv.config();
 
@@ -15,10 +16,7 @@ const app = express();
    ========================= */
 
 app.use(cors());
-
-// JSON normal
 app.use(express.json());
-// x-www-form-urlencoded (webhook Paymee)
 app.use(express.urlencoded({ extended: true }));
 
 // Logger
@@ -104,14 +102,22 @@ app.post("/api/payments/create", async (req, res) => {
       .trim()
       .replace(/\/+$/, "");
 
+    // ✅ IMPORTANT: on stocke email + emailSent
     const paymentRef = await db.collection("payments").add({
-      userId,
-      courseId,
-      amount: Number(amount),
-      status: "PENDING",
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+  userId,
+  courseId,
+  amount: Number(amount),
+
+  // ✅ on garde les infos user pour l’affichage + email
+  email: String(email || "").trim(),
+  firstName: String(firstName || "").trim(),
+  lastName: String(lastName || "").trim(),
+  phone: String(phone || "").trim(),
+
+  status: "PENDING",
+  createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+});
 
     const paymentId = paymentRef.id;
 
@@ -127,10 +133,8 @@ app.post("/api/payments/create", async (req, res) => {
         .padEnd(8, "1"),
       order_id: paymentId,
 
-      // un seul "?" → Paymee rajoute &payment_token=...
       return_url: `${cleanBaseUrl}/payment-status?pid=${paymentId}&sandbox=1`,
       cancel_url: `${cleanBaseUrl}/payment-status?pid=${paymentId}&sandbox=1`,
-
       webhook_url: `${BACKEND_PUBLIC_URL}/api/payments/webhook`,
     };
 
@@ -263,13 +267,45 @@ app.post("/api/payments/webhook", async (req, res) => {
       return res.sendStatus(200);
     }
 
-    await docRef.update({
-      status,
-      transactionId: transaction_id ? String(transaction_id) : null,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    const data = snap.data(); // ✅ on récupère l’ancien doc
+
+  await docRef.update({
+  status,
+  transactionId: transaction_id ? String(transaction_id) : null,
+
+  // ✅ on garde aussi les infos Paymee utiles
+  paymeeToken: token,
+  paymeeStatusRaw: payment_status,
+
+  updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+});
 
     console.log("✅ PAYMENT UPDATED TO", status);
+
+    // ✅ ENVOI EMAIL SI SUCCESS
+    if (status === "SUCCESS" && !data.emailSent) {
+      const userEmail = data.email;
+
+      console.log("📨 Trying to send email to:", userEmail);
+
+      if (userEmail) {
+        await sendPaymentSuccessEmail({
+          to: userEmail,
+          courseId: data.courseId,
+          amount: data.amount,
+        });
+
+        await docRef.update({
+          emailSent: true,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        console.log("📩 Email confirmation envoyé à", userEmail);
+      } else {
+        console.log("⚠️ Aucun email trouvé dans ce paiement", order_id);
+      }
+    }
+
     return res.sendStatus(200);
   } catch (e) {
     console.error("WEBHOOK ERROR:", e.message);
@@ -298,7 +334,6 @@ app.get("/api/payments/:pid", async (req, res) => {
 
 /* =========================
    6.5) RETURN PAYMEE (PUBLIC)
-   ✅ AJOUTÉ : éviter boucle /payment-status
    ========================= */
 app.get("/payment-status", (req, res) => {
   const { pid, sandbox, payment_token, transaction } = req.query;
@@ -315,13 +350,9 @@ app.get("/payment-status", (req, res) => {
 
 /* =========================
    7) PROXY VERS VITE
-   (pour /, etc.)
-   ✅ MODIFIÉ : on exclut /payment-status
    ========================= */
 app.use((req, res, next) => {
   if (req.path.startsWith("/api")) return next();
-
-  // ✅ ne pas proxifier /payment-status sinon boucle
   if (req.path.startsWith("/payment-status")) return next();
 
   return createProxyMiddleware({

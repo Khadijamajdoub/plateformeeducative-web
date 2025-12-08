@@ -4,6 +4,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import PaymentRepository from "../../services/PaymentRepository";
 import CourseUnlockRepository from "../../services/CourseUnlockRepository";
 import { auth } from "../../services/FirebaseService";
+import "./PaymentStatusPage.css"; // ✅ UI only
 
 export default function PaymentStatusPage() {
   const [params] = useSearchParams();
@@ -15,8 +16,6 @@ export default function PaymentStatusPage() {
   const [msg, setMsg] = useState("");
 
   const paymentRepo = new PaymentRepository();
-
-  // ✅ PATCH: empêche le double traitement en dev (React StrictMode)
   const handledRef = useRef(false);
 
   useEffect(() => {
@@ -37,18 +36,21 @@ export default function PaymentStatusPage() {
           return;
         }
 
+        console.log("PAYMENT OBJ =", p);
+
         if (cancelled) return;
         setPayment(p);
 
-        // ✅ PATCH: évite que le SUCCESS soit traité 2 fois
         if (handledRef.current) return;
         handledRef.current = true;
 
         if (p.status === "SUCCESS") {
           setMsg("✅ Paiement validé !");
-
           const userId = auth.currentUser?.uid || p.userId;
-          await CourseUnlockRepository.unlockCourse(userId, p.courseId);
+          await CourseUnlockRepository.unlockCourse(
+            userId,
+            p.courseId || p.course_id
+          );
         } else if (p.status === "FAILED") {
           setMsg("❌ Paiement échoué.");
         } else {
@@ -63,58 +65,118 @@ export default function PaymentStatusPage() {
     }
 
     loadAndHandlePayment();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => (cancelled = true);
   }, [pid]);
 
-  if (loading) return <div style={{ padding: 40 }}>Chargement...</div>;
+  if (loading) {
+    return (
+      <div className="ps-wrapper">
+        <div className="ps-card">
+          <div className="ps-header">
+            <span className="ps-badge">PAYMEE</span>
+            <h1>Statut du paiement</h1>
+            <p className="ps-muted">Référence: {pid || "—"}</p>
+          </div>
+
+          <div className="ps-loading">
+            <div className="ps-spinner" />
+            <p>Chargement du paiement...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const isSuccess = payment?.status === "SUCCESS";
+  const isFailed = payment?.status === "FAILED";
+
+  const courseLabel = payment?.courseId || payment?.course_id || "—";
+  const amountLabel =
+    payment?.amount ||
+    payment?.received_amount ||
+    payment?.cost ||
+    "—";
+  const statusLabel = payment?.status || "—";
+  const transactionLabel =
+    payment?.transactionId ||
+    payment?.transaction_id ||
+    payment?.transaction ||
+    "—";
 
   return (
-    <div style={{ padding: "50px", maxWidth: 600, margin: "auto" }}>
-      <h1>Statut du paiement</h1>
+    <div className="ps-wrapper">
+      <div className="ps-card">
+        <div className="ps-header">
+          <span className="ps-badge">PAYMEE</span>
+          <h1>Statut du paiement</h1>
+          <p className="ps-muted">Référence: {pid}</p>
+        </div>
 
-      {msg && <p style={{ marginTop: 10 }}>{msg}</p>}
-
-      {!payment ? (
-        <p>Impossible de récupérer le paiement.</p>
-      ) : (
-        <>
-          <p>
-            <b>Cours :</b> {payment.courseId}
-          </p>
-          <p>
-            <b>Montant :</b> {payment.amount} DT
-          </p>
-          <p>
-            <b>Status :</b> {payment.status}
-          </p>
-
-          {payment.transactionId && (
-            <p>
-              <b>Transaction :</b> {payment.transactionId}
-            </p>
-          )}
-
-          <hr style={{ margin: "20px 0" }} />
-
-          <button
-            onClick={() => navigate("/my-courses")}
-            style={{
-              marginTop: 25,
-              padding: "10px 20px",
-              background: "#1976d2",
-              color: "white",
-              borderRadius: 6,
-              border: "none",
-              cursor: "pointer",
-            }}
+        {msg && (
+          <div
+            className={`ps-alert ${
+              isSuccess ? "success" : isFailed ? "failed" : "pending"
+            }`}
           >
-            Voir mes cours
-          </button>
-        </>
-      )}
+            <span className="ps-alert-icon">
+              {isSuccess ? "✅" : isFailed ? "❌" : "⏳"}
+            </span>
+            <span>{msg}</span>
+          </div>
+        )}
+
+        {!payment ? (
+          <div className="ps-empty">
+            Impossible de récupérer le paiement.
+          </div>
+        ) : (
+          <>
+            <div className="ps-info">
+              <div className="ps-row">
+                <span className="ps-label">Cours</span>
+                <span className="ps-value">{courseLabel}</span>
+              </div>
+
+              <div className="ps-row">
+                <span className="ps-label">Montant</span>
+                <span className="ps-value">{amountLabel} DT</span>
+              </div>
+
+              <div className="ps-row">
+                <span className="ps-label">Statut</span>
+                <span
+                  className={`ps-chip ${
+                    isSuccess ? "success" : isFailed ? "failed" : "pending"
+                  }`}
+                >
+                  {statusLabel}
+                </span>
+              </div>
+
+              <div className="ps-row">
+                <span className="ps-label">Transaction</span>
+                <span className="ps-value mono">{transactionLabel}</span>
+              </div>
+            </div>
+
+            <div className="ps-actions">
+              <button
+                onClick={() => navigate("/my-courses")}
+                className="ps-btn primary"
+              >
+                Voir mes cours
+              </button>
+
+              <button
+                onClick={() => navigate("/")}
+                className="ps-btn ghost"
+              >
+                Retour accueil
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

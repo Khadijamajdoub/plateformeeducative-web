@@ -1,62 +1,39 @@
 // src/viewmodel/visitor/VisitorViewModel.js
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../../services/FirebaseService";
+import AuthService from "../../services/visitor/AuthService";
+import VisitorRepository from "../../services/visitor/VisitorRepository";
 
-/**
- * ViewModel pour le module Visiteur (Ons)
- * Basé sur les COURS publics.
- */
 export function useVisitorViewModel() {
-  const [courses, setCourses] = useState([]);
-  const [events, setEvents] = useState([]);
-  const [searchResults, setSearchResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [firebaseUser, setFirebaseUser] = useState(null);
+  const [profile, setProfile] = useState(null); // null => internaute
+  const [loading, setLoading] = useState(true);
 
-  const fetchPublicCourses = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      console.log("TODO: implémenter fetchPublicCourses dans VisitorViewModel");
-    } catch (e) {
-      setError(e.message || "Erreur lors du chargement des cours");
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      setFirebaseUser(u);
 
-  const searchCourses = async (query) => {
-    setLoading(true);
-    setError(null);
-    try {
-      console.log("TODO: implémenter searchCourses dans VisitorViewModel", query);
-      // setSearchResults(result);
-    } catch (e) {
-      setError(e.message || "Erreur lors de la recherche de cours");
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (u) {
+        const p = await VisitorRepository.getProfile(u.uid);
+        setProfile(p);
+      } else {
+        setProfile(null);
+      }
 
-  const fetchEvents = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      console.log("TODO: implémenter fetchEvents dans VisitorViewModel");
-    } catch (e) {
-      setError(e.message || "Erreur lors du chargement des événements");
-    } finally {
       setLoading(false);
-    }
-  };
+    });
+
+    return () => unsub();
+  }, []);
 
   return {
-    courses,
-    events,
-    searchResults,
+    firebaseUser,
+    profile,
     loading,
-    error,
-    fetchPublicCourses,
-    searchCourses,
-    fetchEvents,
+    register: AuthService.register,
+    login: AuthService.login,
+    loginGoogle: AuthService.loginWithGoogle,
+    logout: AuthService.logout,
   };
 }
